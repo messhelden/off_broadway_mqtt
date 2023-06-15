@@ -21,6 +21,7 @@ defmodule OffBroadway.MQTT.AcknowledgerTest do
         |> wrap_data(topic)
         |> wrap_msg(queue)
         |> fail_msg(%Error{message: "Argh!", ack: :retry})
+        |> then(&Broadway.Message.configure_ack(&1, on_failure: :requeue))
 
       assert :ok = Ack.ack(topic, [], [failed_msg])
       assert [%{status: :ok}] = Queue.dequeue(queue, 1)

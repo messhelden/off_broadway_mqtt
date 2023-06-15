@@ -64,7 +64,7 @@ defmodule OffBroadway.MQTT.Client do
 
     warn_if_client_id_is_to_large(client_id)
 
-    {_, server_opts} = server = get_mqtt_server(config)
+    {transport, server_opts} = get_mqtt_server(config)
 
     meta =
       server_opts
@@ -73,6 +73,9 @@ defmodule OffBroadway.MQTT.Client do
       |> Map.put(:topic_filter, topic_filter)
       |> Map.put(:qos, qos)
       |> hide_password
+
+    {user_name, server_opts} = Keyword.pop(server_opts, :user_name)
+    {password, server_opts} = Keyword.pop(server_opts, :password)
 
     handler_opts =
       Keyword.get_lazy(opts, :handler_opts, fn ->
@@ -89,7 +92,9 @@ defmodule OffBroadway.MQTT.Client do
       client_id: client_id,
       handler: {config.handler, handler_opts},
       subscriptions: [{topic_filter, qos}],
-      server: server
+      server: {transport, server_opts},
+      user_name: user_name,
+      password: password
     ]
 
     Tortoise.Supervisor.start_child(opts)

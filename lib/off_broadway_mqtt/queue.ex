@@ -111,8 +111,8 @@ defmodule OffBroadway.MQTT.Queue do
         updated_acc = :queue.in(value, acc)
         do_take(updated_queue, amount - 1, updated_acc, size + 1)
 
-      {:empty, q} ->
-        {q, :queue.to_list(acc), size}
+      {:empty, updated_queue} ->
+        {updated_queue, :queue.to_list(acc), size}
     end
   end
 

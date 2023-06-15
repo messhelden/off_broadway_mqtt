@@ -58,14 +58,14 @@ defmodule OffBroadway.MQTT.MixProject do
 
   defp deps do
     [
-      {:broadway, "~> 0.3.0"},
-      {:credo, "~> 1.0", only: [:dev, :test]},
-      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.20", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.10", only: :test},
-      {:gen_stage, "~> 0.14"},
-      {:telemetry, "~> 0.4.0"},
-      {:tortoise, "~> 0.9"}
+      {:broadway, "~> 1.0"},
+      {:credo, "~> 1.7", only: [:dev, :test]},
+      {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.29.0", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.16.0", only: :test},
+      {:gen_stage, "~> 1.2"},
+      {:telemetry, "~> 1.2"},
+      {:tortoise, "~> 0.10.0"}
     ]
   end
 end

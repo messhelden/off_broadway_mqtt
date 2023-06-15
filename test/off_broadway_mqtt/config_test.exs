@@ -18,10 +18,10 @@ defmodule OffBroadway.MQTT.ConfigTest do
   describe "new_from_app_config/1" do
     test "defaults" do
       config = Config.new_from_app_config()
-      assert Code.ensure_compiled?(config.acknowledger)
-      assert Code.ensure_compiled?(config.client)
-      assert Code.ensure_compiled?(config.handler)
-      assert Code.ensure_compiled?(config.queue)
+      assert Code.ensure_compiled(config.acknowledger)
+      assert Code.ensure_compiled(config.client)
+      assert Code.ensure_compiled(config.handler)
+      assert Code.ensure_compiled(config.queue)
       assert config.client_id_prefix == "test"
       assert config.dequeue_interval == 100
       assert config.queue_registry == OffBroadway.MQTT.QueueRegistry

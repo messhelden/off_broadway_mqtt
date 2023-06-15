@@ -13,8 +13,11 @@ defmodule OffBroadway.MQTT.TelemetryTest do
          %{event: event} = context do
       topic = to_string(context.test)
       Producer.init([context.config, subscription: {topic, 0}])
-      assert_receive {:telemetry, ^event, %{count: 1}, meta, nil}, 5000
-      assert meta.topic_filter == topic
+
+      assert_receive {:telemetry, ^event, %{count: 1},
+                      %{topic_filter: ^topic} = meta, nil},
+                     5000
+
       assert meta.qos
       assert meta.client_id
       assert meta.host
@@ -26,8 +29,11 @@ defmodule OffBroadway.MQTT.TelemetryTest do
          %{event: event} = context do
       topic = to_string(context.test)
       Producer.init([context.config, subscription: {topic, 0}])
-      assert_receive {:telemetry, ^event, %{count: 1}, meta, nil}, 5000
-      assert meta.topic_filter == topic
+
+      assert_receive {:telemetry, ^event, %{count: 1},
+                      %{topic_filter: ^topic} = meta, nil},
+                     5000
+
       assert meta.qos
       assert meta.client_id
       assert meta.host
@@ -57,8 +63,11 @@ defmodule OffBroadway.MQTT.TelemetryTest do
     test "sends telemetry event if value enqueued",
          %{queue_topic: topic, queue: queue, event: event} do
       :ok = Queue.enqueue(queue, "test")
-      assert_receive {:telemetry, ^event, %{count: 1, size: 1}, meta, nil}, 1000
-      assert meta.topic_filter == topic
+
+      assert_receive {:telemetry, ^event, %{count: 1, size: 1},
+                      %{topic_filter: ^topic}, nil},
+                     1000
+
       :ok = Queue.enqueue(queue, "test")
       assert_receive {:telemetry, ^event, %{count: 1, size: 2}, _, nil}, 1000
       :ok = Queue.enqueue(queue, "test")
@@ -74,11 +83,13 @@ defmodule OffBroadway.MQTT.TelemetryTest do
       end
 
       Queue.dequeue(queue, 1)
-      assert_receive {:telemetry, ^event, %{count: 1, size: 9}, meta, nil}, 1000
-      assert meta.topic_filter == topic
+
+      assert_receive {:telemetry, ^event, %{count: 1, size: 9},
+                      %{topic_filter: ^topic}, nil},
+                     1000
 
       Queue.dequeue(queue, 5)
-      assert_receive {:telemetry, ^event, %{count: 5, size: 4}, meta, nil}, 1000
+      assert_receive {:telemetry, ^event, %{count: 5, size: 4}, _, nil}, 1000
     end
   end
 
