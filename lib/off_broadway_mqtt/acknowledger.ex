@@ -1,12 +1,6 @@
 defmodule OffBroadway.MQTT.Acknowledger do
   @moduledoc """
   Implements `Broadway.Acknowledger` behaviour.
-
-  Special exceptions with a `ack` field can tell the acknowledger to `:ignore`
-  or `:retry` a message if it reached the end of the pipeline. For every other
-  exception an error is logged with the the exception's `message/1` result as
-  message.
-
   """
 
   require Logger
@@ -19,6 +13,7 @@ defmodule OffBroadway.MQTT.Acknowledger do
   @type ack_data :: %{
           queue: GenServer.name(),
           tries: non_neg_integer,
+          on_failure: :ack | :requeue | nil,
           config: Config.t()
         }
 
@@ -30,12 +25,26 @@ defmodule OffBroadway.MQTT.Acknowledger do
     :ok
   end
 
+  @impl Broadway.Acknowledger
+  def configure(_channel, ack_data, options) do
+    Enum.each(options, fn
+      {:on_failure, val} ->
+        assert_valid_ack_option!(:on_failure, val)
+
+      {other, _value} ->
+        raise ArgumentError, "unsupported configure option #{inspect(other)}"
+    end)
+
+    ack_data = Map.merge(ack_data, Map.new(options))
+    {:ok, ack_data}
+  end
+
   defp ack_messages(messages, _topic, :failed) do
     Enum.each(messages, fn msg ->
       msg
       |> send_telemetry_event()
-      |> log_failure
-      |> maybe_requeue
+      |> log_failure()
+      |> maybe_requeue()
     end)
 
     :ok
@@ -47,40 +56,46 @@ defmodule OffBroadway.MQTT.Acknowledger do
     Enum.each(messages, &send_telemetry_event/1)
 
     Logger.debug(
-      "Successfully processed #{Enum.count(messages)} messages on #{
-        inspect(topic)
-      }"
+      "Successfully processed #{length(messages)} messages on #{inspect(topic)}"
     )
 
     :ok
   end
 
+  @valid_ack_values [:ack, :requeue]
+
+  defp assert_valid_ack_option!(name, value) do
+    unless value in @valid_ack_values do
+      raise ArgumentError,
+            "unsupported value for #{inspect(name)} option: #{inspect(value)}"
+    end
+  end
+
   defp log_failure(
          %{
-           status: {_, %{__exception__: true} = e},
+           status: {_, %{__exception__: true} = e, _exception_args},
            metadata: metadata
          } = message
        ) do
-    log_metadata =
-      metadata
-      |> Enum.into([])
-
+    log_metadata = Enum.into(metadata, [])
     log_failure_for_exception(e, log_metadata)
     message
   end
 
-  defp log_failure(%{
-         status: {_, reason},
-         metadata: metadata
-       }) do
-    log_metadata =
-      metadata
-      |> Enum.into([])
+  defp log_failure(
+         %{
+           status: {_, reason},
+           metadata: metadata
+         } = message
+       ) do
+    log_metadata = Enum.into(metadata, [])
 
     Logger.error(
       "Processing message failed with unhandled reason: #{inspect(reason)}",
       log_metadata
     )
+
+    message
   end
 
   defp log_failure_for_exception(%mod{ack: :ignore} = e, metadata) do
@@ -97,8 +112,8 @@ defmodule OffBroadway.MQTT.Acknowledger do
 
   defp maybe_requeue(
          %{
-           acknowledger: {_, _, %{config: config, queue: queue_name}},
-           status: {_, %{ack: :retry}}
+           acknowledger:
+             {_, _, %{config: config, queue: queue_name, on_failure: :requeue}}
          } = message
        ) do
     updated_message = %{message | status: :ok}
@@ -106,7 +121,7 @@ defmodule OffBroadway.MQTT.Acknowledger do
     updated_message
   end
 
-  defp maybe_requeue(msg), do: msg
+  defp maybe_requeue(message), do: message
 
   defp send_telemetry_event(
          %{

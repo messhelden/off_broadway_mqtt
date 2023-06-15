@@ -7,21 +7,21 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
   @moduletag start_supervisor: true
 
   describe "#{inspect(TestBroadway)}" do
-    test "start_link/1 starts a process",
+    test "start_link/2 starts a process",
          context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
 
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      pid = start_supervised!({TestBroadway, [config, opts]})
 
       assert Process.alive?(pid)
     end
 
-    test "start_link/1 connects to broker and subscribes to topic", context do
+    test "start_link/2 connects to broker and subscribes to topic", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
 
-      assert {:ok, _pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
       assert_receive {:subscription, _client_id, topic, :up}
       assert topic && topic == opts[:topic]
     end
@@ -29,10 +29,11 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
     test "invokes the process_fun", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+
+      start_supervised!({TestBroadway, [config, opts]})
 
       data = wrap_data("test", opts[:topic])
-      Broadway.test_messages(pid, [data])
+      Broadway.test_message(opts[:name], data)
 
       assert_receive {:process_fun, ^data}
     end
@@ -44,10 +45,10 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
 
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context, process_fun: process_fun)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
 
       data = wrap_data("test", opts[:topic])
-      ref = Broadway.test_messages(pid, [data])
+      ref = Broadway.test_message(opts[:name], data)
 
       assert_receive {:ack, ^ref, [],
                       [%{status: {:failed, %RuntimeError{}}, data: ^data}]},
@@ -57,10 +58,10 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
     test "invokes the batch_fun", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
 
       data = wrap_data("test", opts[:topic])
-      Broadway.test_messages(pid, [data])
+      Broadway.test_message(opts[:name], data)
 
       assert_receive {:batch_fun, [%{data: ^data}]}, 5000
     end
@@ -72,10 +73,10 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
 
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context, batch_fun: batch_fun)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
 
       data = wrap_data("test", opts[:topic])
-      ref = Broadway.test_messages(pid, [data])
+      ref = Broadway.test_message(opts[:name], data)
 
       assert_receive {:ack, ^ref, [],
                       [%{status: {:failed, %RuntimeError{}}, data: ^data}]},
@@ -85,10 +86,10 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
     test "processes a message successfully", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
 
       data = wrap_data("test", opts[:topic])
-      ref = Broadway.test_messages(pid, [data])
+      ref = Broadway.test_message(opts[:name], data)
       assert_receive {:ack, ^ref, [%{data: ^data}], []}, 5000
     end
 
@@ -96,7 +97,7 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
     test "processes messages from mqtt", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
       assert_receive {:subscription, _client_id, _topic, :up}
 
       expected_data = wrap_data("Hello, World!", opts[:topic])
@@ -109,7 +110,7 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
     test "batches as configured", context do
       config = config_from_context(context)
       opts = test_broadway_opts_from_context(context)
-      assert {:ok, pid} = TestBroadway.start_link(config, opts)
+      start_supervised!({TestBroadway, [config, opts]})
       assert_receive {:subscription, _client_id, _topic, :up}
 
       expected_data = wrap_data("Hello, World!", opts[:topic])
@@ -136,7 +137,8 @@ defmodule OffBroadway.MQTT.TestBroadwayTest do
       producer_opts: [
         client_id: build_test_client_id(),
         sub_ack: self()
-      ]
+      ],
+      test_pid: self()
     ]
     |> Keyword.merge(overrides)
   end

@@ -40,15 +40,12 @@ defmodule MyApp.NincompoopFilter do
   def start_link(config, topic) do
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
-      producers: [
-        default: [
-          module: {Producer, [config, subscription: {topic, 0}]},
-          stages: 1
-        ]
+      producer: [
+        module: {Producer, [config, subscription: {topic, 0}]}
       ],
-      processors: [default: [stages: 1]],
+      processors: [default: []],
       batchers: [
-        default: [stages: 1, batch_size: 10]
+        default: [batch_size: 10]
       ]
     )
   end
@@ -114,7 +111,7 @@ config =
       # port is converted into a `integer` if it is not already one
       port: "1883",
       transport: :tcp,
-      username: "admin",
+      user_name: "admin",
       password: "admin"
     ]
   )

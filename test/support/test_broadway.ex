@@ -4,7 +4,7 @@ defmodule OffBroadway.MQTT.TestBroadway do
   use OffBroadway.MQTT
 
   def start_link(config, opts) do
-    test_pid = self()
+    test_pid = Keyword.fetch!(opts, :test_pid)
     topic = Keyword.fetch!(opts, :topic)
     name = Keyword.fetch!(opts, :name)
 
@@ -31,21 +31,26 @@ defmodule OffBroadway.MQTT.TestBroadway do
 
     Broadway.start_link(__MODULE__,
       name: name,
-      producers: [
-        default: [
-          module: {Producer, producer_opts},
-          stages: 1
-        ]
+      producer: [
+        module: {Producer, producer_opts}
       ],
-      processors: [default: [stages: 1]],
+      processors: [default: []],
       batchers: [
-        default: [stages: 1, batch_size: 10]
+        default: [batch_size: 10]
       ],
       context: %{
         process_fun: process_fun,
         batch_fun: batch_fun
       }
     )
+  end
+
+  def child_spec([config, opts]) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [config, opts]},
+      shutdown: :infinity
+    }
   end
 
   @impl true

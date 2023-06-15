@@ -28,7 +28,7 @@ defmodule OffBroadway.MQTT.ClientTest do
       capture_log([level: :warn], fn ->
         client_id = <<1::size(192)>>
 
-        assert {:ok, pid} =
+        assert {:ok, _pid} =
                  Client.start(config, {topic, 0}, queue, client_id: client_id)
 
         Process.sleep(1000)
@@ -46,7 +46,7 @@ defmodule OffBroadway.MQTT.ClientTest do
       capture_log([level: :warn], fn ->
         client_id = <<1::size(184)>>
 
-        assert {:ok, pid} =
+        assert {:ok, _pid} =
                  Client.start(config, {topic, 0}, queue, client_id: client_id)
       end)
 

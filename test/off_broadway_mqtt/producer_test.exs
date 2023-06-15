@@ -19,7 +19,7 @@ defmodule OffBroadway.MQTT.ProducerTest do
                 config: ^config,
                 demand: 0,
                 dequeue_timer: nil,
-                queue: {:via, Registry, {registry, ^topic}} = queue_name
+                queue: {:via, Registry, {registry, ^topic}}
               }} = Producer.init([config, subscription: {topic, 0}])
 
       assert registry == config.queue_registry
@@ -133,7 +133,7 @@ defmodule OffBroadway.MQTT.ProducerTest do
       state = update_config(state, dequeue_interval: 1000)
       assert {:noreply, [], new_state} = Producer.handle_demand(1, state)
       refute_receive _, 500
-      assert {:noreply, [], new_state} = Producer.handle_demand(1, state)
+      assert {:noreply, [], _new_state} = Producer.handle_demand(1, new_state)
       refute_receive _, 400
       assert_receive :dequeue_messages, 200
     end
@@ -150,7 +150,7 @@ defmodule OffBroadway.MQTT.ProducerTest do
       :ok = Queue.enqueue(state.queue, "test")
       :ok = Queue.enqueue(state.queue, "test")
 
-      assert {:noreply, [_, _, _], %{demand: 7} = state} =
+      assert {:noreply, [_, _, _], %{demand: 7}} =
                Producer.handle_demand(10, state)
     end
 
@@ -172,7 +172,7 @@ defmodule OffBroadway.MQTT.ProducerTest do
         :ok = Queue.enqueue(state.queue, n)
       end
 
-      assert {:noreply, [1, 2, 3, 4, 5, 6, 7], %{demand: 0} = state} =
+      assert {:noreply, [1, 2, 3, 4, 5, 6, 7], %{demand: 0}} =
                Producer.handle_demand(5, %{state | dequeue_timer: nil})
     end
 
@@ -184,8 +184,7 @@ defmodule OffBroadway.MQTT.ProducerTest do
         :ok = Queue.enqueue(state.queue, n)
       end
 
-      assert {:noreply, [], %{demand: 2} = state} =
-               Producer.handle_demand(1, state)
+      assert {:noreply, [], %{demand: 2}} = Producer.handle_demand(1, state)
     end
   end
 
